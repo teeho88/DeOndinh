@@ -5,21 +5,12 @@
  *      Author: Teeho
  */
 
-#ifndef INC_IMU50_H_
-#define INC_IMU50_H_
+#ifndef __IMU50_H_
+#define __IMU50_H_
 
 #include "main.h"
 #include "stdio.h"
 #include "string.h"
-
-#define READ_ANGLE 0x7704000408
-#define READ_ACCEL 0x7704005458
-#define READ_GYR 0x7704005054U
-#define READ_QUATERNION 0x770400575B
-#define __SET_BAUD_RATE(x) (0x7705000B0012|(x<<8))
-#define __SET_OUT_FREQ(x) (0x7705000C0011|(x<<8))
-#define __SET_AUTO_OUT(x) (0x77050056005B|(x<<8))
-#define SAVE_SETTING 0x7704000A0E
 
 enum BAUD_RATE {
 	BAUD_2400 = 0x00,
@@ -40,12 +31,19 @@ enum OUT_FREQ {
 };
 
 enum AUTO_OUTPUT {
-	ANGLE = 0x00,
-	ACCEL = 0x01,
-	GYR = 0x02,
-	ANGLE_RESERVING = 0x03,
-	QUATERNION = 0x04,
-	ALL = 0x05
+	AUT_ANGLE = 0x00,
+	AUT_ACCEL = 0x01,
+	AUT_GYR = 0x02,
+	AUT_ANGLE_RESERVING = 0x03,
+	AUT_QUATERNION = 0x04,
+	AUT_ALL = 0x05
+};
+
+enum TYPE_DATA {
+	TYPE_ANGLE = 0,
+	TYPE_ACCEL = 1,
+	TYPE_GYR = 2,
+	TYPE_QUAT = 3
 };
 
 typedef struct
@@ -63,8 +61,11 @@ typedef struct
 	float q3;
 }QUATERN;
 
-void IMU50_Init(UART_HandleTypeDef *huart, uint8_t mode, uint8_t *inBuff, uint16_t len);
-void IMU50_Read_Angle();
+void IMU50_Init(UART_HandleTypeDef *huart, uint8_t out_freq, uint8_t out_mode, uint8_t *inBuff, uint16_t len);
+HAL_StatusTypeDef IMU50_Read_Angle();
+HAL_StatusTypeDef IMU50_Read_Gyr();
+HAL_StatusTypeDef IMU50_Read_Accel();
+HAL_StatusTypeDef IMU50_Read_All();
 
 
 
