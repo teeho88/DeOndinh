@@ -1,0 +1,16 @@
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\bin\Debug\TestUartIMU50.exe.config
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\bin\Debug\TestUartIMU50.exe
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\bin\Debug\TestUartIMU50.pdb
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\TestUartIMU50.csproj.AssemblyReference.cache
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\MainWindow.g.cs
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\App.g.cs
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\GeneratedInternalTypeHelper.g.cs
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\TestUartIMU50_MarkupCompile.cache
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\TestUartIMU50_MarkupCompile.lref
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\MainWindow.baml
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\TestUartIMU50.g.resources
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\TestUartIMU50.Properties.Resources.resources
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\TestUartIMU50.csproj.GenerateResource.cache
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\TestUartIMU50.csproj.CoreCompileInputs.cache
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\TestUartIMU50.exe
+C:\Users\Teeho\source\repos\TestUartIMU50\TestUartIMU50\obj\Debug\TestUartIMU50.pdb

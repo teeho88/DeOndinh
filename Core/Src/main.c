@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "stdio.h"
 #include "string.h"
+#include "IMU50.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -35,6 +36,7 @@ uint16_t RFCAdcValue = 0;
 extern Data_Triaxis_Def Angle;
 extern Data_Triaxis_Def Gyr;
 extern Data_Triaxis_Def Accel;
+uint8_t test[4] = {'1','2','3','4'};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -47,7 +49,7 @@ extern Data_Triaxis_Def Accel;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
- ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
 TIM_HandleTypeDef htim2;
@@ -136,9 +138,9 @@ void UARTRXInit(void) {
 	__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);   // enable idle line interrupt
 	hdma_usart1_rx.Instance->CR &= ~DMA_SxCR_HTIE; // disable uart half tx interrupt
 	HAL_UART_Receive_DMA(&huart1, rxRing1, 2 * BUFFER_SIZE_1);
-	__HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);   // enable idle line interrupt
-	hdma_usart2_rx.Instance->CR &= ~DMA_SxCR_HTIE; // disable uart half tx interrupt
-	HAL_UART_Receive_DMA(&huart2, rxRing2, 2 * BUFFER_SIZE_2);
+//	__HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);   // enable idle line interrupt
+//	hdma_usart2_rx.Instance->CR &= ~DMA_SxCR_HTIE; // disable uart half tx interrupt
+//	HAL_UART_Receive_DMA(&huart2, rxRing2, 2 * BUFFER_SIZE_2);
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
@@ -182,6 +184,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&RFCAdcValue, 1);
   UARTRXInit();
   IMU50_Init(&huart1, ANSWER, AUT_ALL, inData1, BUFFER_SIZE_1);
 
@@ -189,10 +192,10 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  HAL_ADC_Start_DMA(&hadc1, &RFCAdcValue, 1);
   while (1)
   {
-	 HAL_ADC_Start_DMA(&hadc1, &RFCAdcValue, 1);
+//	  HAL_UART_Transmit(&huart1, test, 4, 100);
+//	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -269,7 +272,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
