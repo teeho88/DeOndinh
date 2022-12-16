@@ -46,7 +46,7 @@ float IMU50_Respond_format(uint8_t *data, int type)
 		x = (data[0] & 0x0f) * 100 + (data[1] >> 4) * 10 + (data[1] & 0x0f)
 						+ (data[2] >> 4) * 0.1 + (data[2] & 0x0f) * 0.01;
 	}
-	x = x * (-2 * (respond[4] >> 4) + 1);
+	x = x * (-2 * (data[0] >> 4) + 1);
 	return x;
 }
 
@@ -67,10 +67,10 @@ void IMU50_Init(UART_HandleTypeDef *huart, uint8_t out_freq, uint8_t out_mode, u
 HAL_StatusTypeDef IMU50_Read_Angle()
 {
 	IMU50_SendCommand(READ_ANGLE, 5);
-	if (respond[0] == 0x77 && respond[1] == 0x84) {
-		Angle.x = IMU50_Respond_format(&respond[4], TYPE_ANGLE);
-		Angle.y = IMU50_Respond_format(&respond[7], TYPE_ANGLE);
-		Angle.z = IMU50_Respond_format(&respond[10], TYPE_ANGLE);
+	if (*respond == 0x77 && *(respond+3) == 0x84) {
+		Angle.x = IMU50_Respond_format(respond+4, TYPE_ANGLE);
+		Angle.y = IMU50_Respond_format(respond+7, TYPE_ANGLE);
+		Angle.z = IMU50_Respond_format(respond+10, TYPE_ANGLE);
 		return HAL_OK;
 	}
 	return HAL_ERROR;
@@ -79,10 +79,10 @@ HAL_StatusTypeDef IMU50_Read_Angle()
 HAL_StatusTypeDef IMU50_Read_Gyr()
 {
 	IMU50_SendCommand(READ_GYR, 5);
-	if (respond[0] == 0x77 && respond[3] == 0x50) {
-		Gyr.x = IMU50_Respond_format(&respond[4], TYPE_GYR);
-		Gyr.y = IMU50_Respond_format(&respond[7], TYPE_GYR);
-		Gyr.z = IMU50_Respond_format(&respond[10], TYPE_GYR);
+	if (*respond == 0x77 && *(respond+3) == 0x50) {
+		Gyr.x = IMU50_Respond_format(respond+4, TYPE_GYR);
+		Gyr.y = IMU50_Respond_format(respond+7, TYPE_GYR);
+		Gyr.z = IMU50_Respond_format(respond+10, TYPE_GYR);
 		return HAL_OK;
 	}
 	return HAL_ERROR;
@@ -91,10 +91,10 @@ HAL_StatusTypeDef IMU50_Read_Gyr()
 HAL_StatusTypeDef IMU50_Read_Accel()
 {
 	IMU50_SendCommand(READ_ACCEL, 5);
-	if (respond[0] == 0x77 && respond[1] == 0x54) {
-		Accel.x = IMU50_Respond_format(&respond[4], TYPE_ACCEL);
-		Accel.y = IMU50_Respond_format(&respond[7], TYPE_ACCEL);
-		Accel.z = IMU50_Respond_format(&respond[10], TYPE_ACCEL);
+	if (*respond == 0x77 && *(respond+3) == 0x54) {
+		Accel.x = IMU50_Respond_format(respond+4, TYPE_ACCEL);
+		Accel.y = IMU50_Respond_format(respond+7, TYPE_ACCEL);
+		Accel.z = IMU50_Respond_format(respond+10, TYPE_ACCEL);
 		return HAL_OK;
 	}
 	return HAL_ERROR;
@@ -103,23 +103,23 @@ HAL_StatusTypeDef IMU50_Read_Accel()
 HAL_StatusTypeDef IMU50_Read_All()
 {
 	IMU50_SendCommand(READ_ALL, 5);
-	if (respond[0] == 0x77 && respond[1] == 0x59) {
-		Angle.x = IMU50_Respond_format(&respond[4], TYPE_ANGLE);
-		Angle.y = IMU50_Respond_format(&respond[7], TYPE_ANGLE);
-		Angle.z = IMU50_Respond_format(&respond[10], TYPE_ANGLE);
+	if (*respond == 0x77 && *(respond+3) == 0x59) {
+//		Angle.x = IMU50_Respond_format(respond+4, TYPE_ANGLE);
+//		Angle.y = IMU50_Respond_format(respond+7, TYPE_ANGLE);
+//		Angle.z = IMU50_Respond_format(respond+10, TYPE_ANGLE);
 
-		Accel.x = IMU50_Respond_format(&respond[13], TYPE_ACCEL);
-		Accel.y = IMU50_Respond_format(&respond[16], TYPE_ACCEL);
-		Accel.z = IMU50_Respond_format(&respond[19], TYPE_ACCEL);
+		Accel.x = IMU50_Respond_format(respond+13, TYPE_ACCEL);
+		Accel.y = IMU50_Respond_format(respond+16, TYPE_ACCEL);
+		Accel.z = IMU50_Respond_format(respond+19, TYPE_ACCEL);
 
-		Gyr.x = IMU50_Respond_format(&respond[22], TYPE_GYR);
-		Gyr.y = IMU50_Respond_format(&respond[25], TYPE_GYR);
-		Gyr.z = IMU50_Respond_format(&respond[28], TYPE_GYR);
+		Gyr.x = IMU50_Respond_format(respond+22, TYPE_GYR);
+		Gyr.y = IMU50_Respond_format(respond+25, TYPE_GYR);
+		Gyr.z = IMU50_Respond_format(respond+28, TYPE_GYR);
 
-		Quat.q0 = IMU50_Respond_format(&respond[31], TYPE_QUAT);
-		Quat.q1 = IMU50_Respond_format(&respond[35], TYPE_QUAT);
-		Quat.q0 = IMU50_Respond_format(&respond[39], TYPE_QUAT);
-		Quat.q0 = IMU50_Respond_format(&respond[43], TYPE_QUAT);
+//		Quat.q0 = IMU50_Respond_format(respond+31, TYPE_QUAT);
+//		Quat.q1 = IMU50_Respond_format(respond+35, TYPE_QUAT);
+//		Quat.q0 = IMU50_Respond_format(respond+39, TYPE_QUAT);
+//		Quat.q0 = IMU50_Respond_format(respond+43, TYPE_QUAT);
 
 		return HAL_OK;
 	}

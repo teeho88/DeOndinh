@@ -1,0 +1,2 @@
+../Core/Src/kalman.c:8:7:KalmanFilterGyr	24	static
+../Core/Src/kalman.c:17:7:KalmanFilterRFC	24	static

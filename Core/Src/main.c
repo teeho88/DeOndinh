@@ -24,19 +24,11 @@
 #include "stdio.h"
 #include "string.h"
 #include "IMU50.h"
+#include "kalman.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define BUFFER_SIZE_1 20
-#define BUFFER_SIZE_2 100
-uint8_t inData1[BUFFER_SIZE_1];
-uint8_t inData2[BUFFER_SIZE_2];
-uint16_t RFCAdcValue = 0;
-extern Data_Triaxis_Def Angle;
-extern Data_Triaxis_Def Gyr;
-extern Data_Triaxis_Def Accel;
-uint8_t test[4] = {'1','2','3','4'};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -45,7 +37,15 @@ uint8_t test[4] = {'1','2','3','4'};
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+#ifdef __GNUC__
+  /* With GCC, small printf (option LD Linker->Libraries->Small printf
+     set to 'Yes') calls __io_putchar() */
+  #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+  #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 
+
+#endif /* __GNUC__ */
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -54,99 +54,79 @@ DMA_HandleTypeDef hdma_adc1;
 
 TIM_HandleTypeDef htim2;
 
-UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
-DMA_HandleTypeDef hdma_usart1_rx;
+UART_HandleTypeDef huart6;
 DMA_HandleTypeDef hdma_usart2_rx;
+DMA_HandleTypeDef hdma_usart6_rx;
 
 /* USER CODE BEGIN PV */
-void UART1Complete(void);
-void UART2Complete(void);
-void UARTRXInit(void);
+#define BUFFER_SIZE_1 100
+#define BUFFER_SIZE_2 50
+uint8_t buffUART6[BUFFER_SIZE_1];
+uint8_t buffUART2[BUFFER_SIZE_2];
+uint8_t PcData[BUFFER_SIZE_1];
+uint8_t ImuData[BUFFER_SIZE_2];
+uint16_t RFCAdcValue = 0;
+float T = 0;
+extern Data_Triaxis_Def Gyr;
+float Roll_IMU = 0;
+float Roll_result = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_ADC1_Init(void);
 static void MX_DMA_Init(void);
-static void MX_USART2_UART_Init(void);
-static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_USART2_UART_Init(void);
+static void MX_ADC1_Init(void);
+static void MX_USART6_UART_Init(void);
 /* USER CODE BEGIN PFP */
+void UARTRXInit(void);
 
+PUTCHAR_PROTOTYPE
+{
+  /* Place your implementation of fputc here */
+  /* e.g. write a character to the EVAL_COM1 and Loop until the end of transmission */
+  HAL_UART_Transmit(&huart6, (uint8_t *)&ch, 1, 0xFFFF);
+  return ch;
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t rxRing1[2*BUFFER_SIZE_1];
-uint16_t rxLastPos1 = 0, rxThisPos1 = 0;
-uint8_t rxRing2[2*BUFFER_SIZE_2];
-uint16_t rxLastPos2 = 0, rxThisPos2 = 0;
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
-	if (huart->Instance == USART1) {
-		if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_IDLE)) {
-			UART1Complete();
-		}
+	if(huart->Instance == USART6)
+	{
+		memset(PcData,0,BUFFER_SIZE_1);
+		memcpy(PcData,buffUART6,Size);
+		HAL_UARTEx_ReceiveToIdle_DMA(&huart6, buffUART6, BUFFER_SIZE_1);
 	}
-	if (huart->Instance == USART2) {
-		if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_IDLE)) {
-			UART2Complete();
-		}
+	if(huart->Instance == USART2)
+	{
+		memset(ImuData,0,BUFFER_SIZE_2);
+		memcpy(ImuData,buffUART2,Size);
+		HAL_UARTEx_ReceiveToIdle_DMA(&huart2, buffUART2, BUFFER_SIZE_2);
 	}
-}
-
-void UART1Complete(void) {
-  uint16_t len;
-  rxThisPos1 = sizeof(rxRing1) - __HAL_DMA_GET_COUNTER(&hdma_usart1_rx); //get current write pointer
-  if(rxThisPos1 > rxLastPos1)
-  {
-	  len = rxThisPos1 - rxLastPos1; //calculate how far the DMA write pointer has moved
-	  memcpy(inData1, (rxRing1 + rxLastPos1), len);
-  }
-  else
-  {
-	  len = sizeof(rxRing1) - rxLastPos1;
-	  memcpy(inData1, (rxRing1 + rxLastPos1), len);
-	  memcpy((inData1 +  len), rxRing1, rxThisPos1);
-
-  }
-  rxLastPos1 = rxThisPos1;
-}
-
-void UART2Complete(void) {
-  uint16_t len;
-  rxThisPos2 = sizeof(rxRing2) - __HAL_DMA_GET_COUNTER(&hdma_usart2_rx); //get current write pointer
-  if(rxThisPos2 > rxLastPos2)
-  {
-	  len = rxThisPos2 - rxLastPos2; //calculate how far the DMA write pointer has moved
-	  memcpy(inData2, (rxRing2 + rxLastPos2), len);
-  }
-  else
-  {
-	  len = sizeof(rxRing2) - rxLastPos2;
-	  memcpy(inData2, (rxRing2 + rxLastPos2), len);
-	  memcpy((inData2 +  len), rxRing2, rxThisPos2);
-
-  }
-  rxLastPos2 = rxThisPos2;
 }
 
 void UARTRXInit(void) {
-	__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);   // enable idle line interrupt
-	hdma_usart1_rx.Instance->CR &= ~DMA_SxCR_HTIE; // disable uart half tx interrupt
-	HAL_UART_Receive_DMA(&huart1, rxRing1, 2 * BUFFER_SIZE_1);
-//	__HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);   // enable idle line interrupt
-//	hdma_usart2_rx.Instance->CR &= ~DMA_SxCR_HTIE; // disable uart half tx interrupt
-//	HAL_UART_Receive_DMA(&huart2, rxRing2, 2 * BUFFER_SIZE_2);
+	HAL_UARTEx_ReceiveToIdle_DMA(&huart6, buffUART6, BUFFER_SIZE_1);
+	__HAL_DMA_DISABLE_IT(&hdma_usart6_rx, DMA_IT_HT);
+	HAL_UARTEx_ReceiveToIdle_DMA(&huart2, buffUART2, BUFFER_SIZE_2);
+	__HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT);
 }
 
+float RFC_Factor = 1;
+uint16_t delta_RFC;
+uint16_t oldADC = 0;
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
     // Conversion Complete & DMA Transfer Complete As Well
-
+	RFCAdcValue = KalmanFilterRFC(RFCAdcValue);
+	delta_RFC = (RFCAdcValue - oldADC)*RFC_Factor;
+	oldADC = RFCAdcValue;
 }
 /* USER CODE END 0 */
 
@@ -178,24 +158,33 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_ADC1_Init();
   MX_DMA_Init();
-  MX_USART2_UART_Init();
-  MX_USART1_UART_Init();
   MX_TIM2_Init();
+  MX_USART2_UART_Init();
+  MX_ADC1_Init();
+  MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&RFCAdcValue, 1);
   UARTRXInit();
-  IMU50_Init(&huart1, ANSWER, AUT_ALL, inData1, BUFFER_SIZE_1);
-
+  IMU50_Init(&huart2, ANSWER, AUT_GYR, ImuData, BUFFER_SIZE_2);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t t_old = __HAL_TIM_GetCounter(&htim2);
   while (1)
   {
-//	  HAL_UART_Transmit(&huart1, test, 4, 100);
-//	  HAL_Delay(1000);
+	if(IMU50_Read_Gyr() != HAL_OK)
+	{
+		HAL_Delay(5);
+		continue;
+	}
+	Gyr.z = KalmanFilterGyr(Gyr.z);
+	uint32_t t_cur = __HAL_TIM_GetCounter(&htim2);
+	T = (t_cur - t_old)*0.000001f;
+	t_old = t_cur;
+	Roll_IMU += Gyr.z*T;
+	Roll_result = Roll_IMU + delta_RFC;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -225,7 +214,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLN = 100;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -239,10 +228,10 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -287,7 +276,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -346,39 +335,6 @@ static void MX_TIM2_Init(void)
 }
 
 /**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 9600;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
-
-}
-
-/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -412,6 +368,39 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
+  * @brief USART6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART6_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART6_Init 0 */
+
+  /* USER CODE END USART6_Init 0 */
+
+  /* USER CODE BEGIN USART6_Init 1 */
+
+  /* USER CODE END USART6_Init 1 */
+  huart6.Instance = USART6;
+  huart6.Init.BaudRate = 115200;
+  huart6.Init.WordLength = UART_WORDLENGTH_8B;
+  huart6.Init.StopBits = UART_STOPBITS_1;
+  huart6.Init.Parity = UART_PARITY_NONE;
+  huart6.Init.Mode = UART_MODE_TX_RX;
+  huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart6.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART6_Init 2 */
+
+  /* USER CODE END USART6_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -428,9 +417,9 @@ static void MX_DMA_Init(void)
   /* DMA2_Stream0_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
-  /* DMA2_Stream2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+  /* DMA2_Stream1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
 
 }
 
@@ -445,6 +434,7 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
 
 }
 
